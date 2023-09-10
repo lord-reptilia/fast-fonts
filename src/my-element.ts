@@ -3,7 +3,6 @@
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 import {LitElement, html, css} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 
@@ -19,7 +18,7 @@ export class MyElement extends LitElement {
   static override styles = css`
     :host {
       display: block;
-      border: solid 1px gray;
+      border: solid 1px grey;
       padding: 16px;
       max-width: 800px;
     }
@@ -29,35 +28,77 @@ export class MyElement extends LitElement {
    * The name to say "Hello" to.
    */
   @property()
-  name = 'World';
+  defaultSampleText = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
 
-  /**
-   * The number of times the button has been clicked.
-   */
-  @property({type: Number})
-  count = 0;
+  @property()
+  customSampleText = '';
+
+  @property()
+  localFonts = [];
+
+  @property()
+  size = 14
 
   override render() {
+    const formatSample = (family) => `
+        font-size: ${this.size}pt;
+        font-family: ${family};
+        src: local(${family});
+    `;
+
     return html`
-      <h1>${this.sayHello(this.name)}!</h1>
-      <button @click=${this._onClick} part="button">
-        Click Count: ${this.count}
-      </button>
-      <slot></slot>
+      <input 
+        type="text"
+        placeholder="Escribe el texto de muestra"
+        value=${this.customSampleText} 
+        @input=${this._handleSampleTextChange} 
+      />
+
+      <span>${this.size} pt</span>
+      <input
+        id="sample-size"
+        type="range"
+        value=${this.size}
+        min="7"
+        max="50"
+
+        @input=${this._handleSampleSize}
+      />
+
+      ${this.localFonts?.splice(0, 9).map((localFont, i) => html`
+        <article>
+          <h1 class=".font-name">${i + 1} - ${localFont.fullName}</h1>
+          <p style=${formatSample(localFont.postscriptName)}>${this.customSampleText || this.defaultSampleText}</p>
+        </article>
+      `)}
+      
     `;
   }
 
-  private _onClick() {
-    this.count++;
-    this.dispatchEvent(new CustomEvent('count-changed'));
+  private _handleSampleTextChange(e: any) {
+    this.customSampleText = e.target.value
   }
 
-  /**
-   * Formats a greeting
-   * @param name The name to say "Hello" to
-   */
-  sayHello(name: string): string {
-    return `Hello, ${name}`;
+  private _handleSampleSize(e: any) {
+    this.size = e.target.value;
+    console.log(e.target.value)
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    const getLocatFonts = async () => {
+      try {
+        const fontsQuery = await window.queryLocalFonts()
+        console.log(fontsQuery);
+
+        return fontsQuery;
+      } catch(error: Error) {
+        console.error(error.name, error.message);
+      }
+    };
+
+    getLocatFonts()
+      .then(res => this.localFonts = res)
   }
 }
 
